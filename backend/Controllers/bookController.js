@@ -1,5 +1,6 @@
-const { createBook, getAllBooks, updateBook, softDeleteBook } = require("../Models/bookModel");
+const Book = require("../Models/bookModel");
 
+// ✅ Create a New Book
 const createBookHandler = async (req, res) => {
     try {
         let { title, author, genre, publication_date, description } = req.body;
@@ -8,30 +9,51 @@ const createBookHandler = async (req, res) => {
             publication_date = new Date(publication_date).toISOString().split("T")[0];
         }
 
-        const newBook = await createBook(title, author, genre, publication_date, description);
+        const newBook = await Book.create({
+            title,
+            author,
+            genre,
+            publication_date,
+            description
+        });
+
         res.status(201).json(newBook);
     } catch (error) {
         console.error("Error creating book:", error.message);
-        res.status(500).send("Error creating New Book");
+        res.status(500).json({ error: "Error creating New Book" });
     }
 };
 
+// ✅ Get All Books (excluding soft-deleted ones)
 const getAllBooksHandler = async (req, res) => {
     try {
-        const books = await getAllBooks();
+        const books = await Book.findAll({
+            where: { is_deleted: false }
+        });
+
         res.json(books);
     } catch (error) {
-        console.error("Error fetching books:", error.message);
-        res.status(500).send("Error fetching books");
+        console.error("❌ Error fetching books:", error); // Log full error object
+        res.status(500).json({ error: "Error fetching books", details: error.message });
     }
 };
 
+// ✅ Update a Book
 const updateBookHandler = async (req, res) => {
     try {
         const { id } = req.params;
         const { title, author, genre, publication_date, description } = req.body;
 
-        const updatedBook = await updateBook(id, title, author, genre, publication_date, description);
+        const [updated] = await Book.update(
+            { title, author, genre, publication_date, description },
+            { where: { id } }
+        );
+
+        if (!updated) {
+            return res.status(404).json({ error: "Book not found" });
+        }
+
+        const updatedBook = await Book.findByPk(id);
         res.json(updatedBook);
     } catch (error) {
         console.error("Error updating book:", error.message);
@@ -39,11 +61,21 @@ const updateBookHandler = async (req, res) => {
     }
 };
 
+// ✅ Soft Delete a Book 
 const softDeleteBookHandler = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedBook = await softDeleteBook(id);
-        res.json({ message: "Book soft deleted successfully", book: deletedBook });
+
+        const [updated] = await Book.update(
+            { is_deleted: true },
+            { where: { id } }
+        );
+
+        if (!updated) {
+            return res.status(404).json({ error: "Book not found" });
+        }
+
+        res.json({ message: "Book soft deleted successfully" });
     } catch (error) {
         console.error("Error soft deleting book:", error.message);
         res.status(500).json({ error: "Error soft deleting book" });
