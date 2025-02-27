@@ -36,29 +36,4 @@ const Book = sequelize.define("Book", {
     tableName: "books", 
 });
 
-const createBook = async (title, author, genre, publication_date, description) => {
-    return await Book.create({ title, author, genre, publication_date, description });
-};
-
-const getAllBooks = async () => {
-    return await Book.findAll({ where: { is_deleted: false } });
-};
-
-const updateBook = async (id, title, author, genre, publication_date, description) => {
-    const [updated] = await Book.update(
-        { title, author, genre, publication_date, description },
-        { where: { id } }
-    );
-    return updated ? await Book.findByPk(id) : null;
-};
-
-const softDeleteBook = async (id) => {
-    const [updated] = await Book.update({ is_deleted: true }, { where: { id } });
-    return updated ? { message: "Book soft deleted" } : null;
-};
-
-const deleteBook = async (id) => {
-    return await Book.destroy({ where: { id } });
-};
-
 module.exports =  Book ;
